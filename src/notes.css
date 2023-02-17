@@ -1,0 +1,97 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", sans-serif;
+}
+.note-app {
+  display: flex;
+  justify-content: space-between;
+  height: 100vh;
+}
+
+.note-list {
+  width: 30%;
+  overflow-y: scroll;
+}
+
+.note-item {
+  padding: 10px;
+  border: 1px solid gray;
+  cursor: pointer;
+}
+
+.selected {
+  border: 1px solid blue;
+}
+
+.note-editor {
+  width: 70%;
+  padding: 10px;
+}
+.create-note-button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  display: block;
+  margin: 0 auto;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.delete-note-button {
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.delete-note-button:hover {
+  background-color: darkred;
+}
+.create-note-button:hover {
+  background-color: #0069d9;
+}
+
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid gray;
+}
+
+.public-button {
+  background-color: green;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+}
+
+.private-button {
+  background-color: red;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+}
+
+.note-editor-buttons {
+  /* Put all on the right */
+  display: flex;
+  justify-content: flex-end;
+}

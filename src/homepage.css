@@ -1,0 +1,28 @@
+.body {
+  font-family: Arial, sans-serif;
+  background-color: lightgray;
+}
+
+header {
+  text-align: center;
+  padding: 40px;
+}
+
+#landing-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+}
+
+#login-button {
+  background-color: lightblue;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: bold;
+  text-decoration: none;
+  margin-top: 20px;
+  cursor: pointer;
+}
