@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import _ from "lodash";
+import _, { map } from "lodash";
 import "../notes.css";
 import "../audiorecorder.css";
 
@@ -25,6 +25,44 @@ function Notes() {
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const navigate = useNavigate();
+  const [file, setFile] = useState(null);
+  const [uris, setUris] = useState([]);
+  const [imageUrl, setImageUrl] = useState([]);
+
+  useEffect(() => {
+    if (selectedNote) {
+      getUrisOFFiles(selectedNote.id).then((uris) => setUris(uris));
+    }
+  }, [selectedNote]);
+
+  function getUrisOFFiles(id) {
+    return fetch(`http://localhost:8080/notes/${id}/files`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Accept: "application/json",
+      },
+      method: "GET",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        return data.map((file) => file.uri);
+      });
+  }
+  const uploadFile = (file, selectedNote) => {
+    const fromData = new FormData();
+    fromData.append("file", file);
+    const response = fetch(
+      `http://localhost:8080/notes/${selectedNote.id}/files`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: fromData,
+      }
+    );
+    return response.json();
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -113,9 +151,64 @@ function Notes() {
       setNotes(notes.filter((note) => note.id !== id));
       setSelectedNote(null);
     });
-
-    /*Buscador de notas por titulo */
   };
+
+  const handleFileSubmit = (e) => {
+    e.preventDefault();
+    if (file) {
+      uploadFile(file, selectedNote);
+    }
+  };
+
+  function fetchImages(uris) {
+    const imagePromises = uris.map((uri) => {
+      return fetch("http://localhost:8080" + uri, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Accept: "application/octet-stream",
+        },
+      })
+        .then((res) => res.blob())
+        .then((blob) => URL.createObjectURL(blob))
+        .catch((error) => console.error(error));
+    });
+
+    Promise.all(imagePromises).then((urls) => setImageUrl(urls));
+  }
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      const imagePromises = uris.map((uri) => {
+        return fetch(`http://localhost:8080${uri}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Accept: "application/octet-stream",
+          },
+        })
+          .then((res) => res.blob())
+          .then((blob) => URL.createObjectURL(blob))
+          .catch((error) => console.error(error));
+      });
+
+      try {
+        const urls = await Promise.all(imagePromises);
+        setImageUrl(urls);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchImages();
+  }, [uris]);
+
+  /*Cada vez que se suba una foto actualizar la pagina para que la foto se vea */
+  useEffect(() => {
+    if (selectedNote) {
+      getUrisOFFiles(selectedNote.id).then((uris) => {
+        setUris(uris);
+      });
+    }
+  }, [selectedNote]);
 
   return (
     <div className="note-app">
@@ -184,6 +277,19 @@ function Notes() {
                 </button>
               )}
             </div>
+            {/* Upload image */}
+            <form onSubmit={handleFileSubmit}>
+              <label htmlFor="fileInput">File: </label>
+              <br />
+              <input
+                id="fileInput"
+                type="file"
+                accept="image/*"
+                onChange={(event) => setFile(event.target.files[0])}
+              />
+              <br />
+              <button type="submit">Upload Image</button>
+            </form>
 
             <button
               onClick={() => handleDeleteNote(selectedNote.id)}
@@ -191,6 +297,27 @@ function Notes() {
             >
               Delete Note
             </button>
+
+            <h1 style={{ textAlign: "center" }}>Images of the note</h1>
+
+            <div style={{ display: "flex" }}>
+              {imageUrl &&
+                imageUrl.map((imageUrl) => (
+                  <img
+                    src={imageUrl}
+                    key={imageUrl}
+                    alt={imageUrl}
+                    style={{
+                      width: "200px",
+                      height: "200px",
+                      objectFit: "cover",
+                      margin: "10px",
+                      borderRadius: "10px",
+                      border: "1px solid black",
+                    }}
+                  />
+                ))}
+            </div>
           </>
         ) : (
           <p>Please select a note to edit</p>
