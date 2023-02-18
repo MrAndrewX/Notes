@@ -17,13 +17,24 @@ const Login = () => {
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
+      if (response.status === 401) {
+        throw new Error("Password or username is incorrect");
+      }
       if (!response.ok) {
         throw new Error(data.message);
       }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("expiration", data.expiration);
       navigate("/notes");
     } catch (error) {
+      if (
+        error.message ===
+        "JSON.parse: unexpected end of data at line 1 column 1 of the JSON data"
+      ) {
+        setError("Username or password is incorrect");
+        return;
+      }
       setError(error.message);
     }
   };

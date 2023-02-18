@@ -14,12 +14,18 @@ export default function Root() {
           <li>
             <Link to="/login">Login</Link>
           </li>
+
           <li>
             <Link to="/notes">Notes</Link>
+          </li>
+
+          <li>
+            <Link to="/settings">Settings</Link>
           </li>
           <li>
             <Link to="/signup">Register</Link>
           </li>
+
           <li>
             <Link to="/login" onClick={() => localStorage.clear()}>
               Logout
