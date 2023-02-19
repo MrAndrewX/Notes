@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import _ from "lodash";
 import "../notes.css";
@@ -28,8 +28,74 @@ function Notes() {
   const [file, setFile] = useState(null);
   const [uris, setUris] = useState([]);
   const [imageUrl, setImageUrl] = useState([]);
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [blob, setBlob] = useState(null);
+  const mediaRecorderRef = useRef(null);
+
+  const startRecording = (noteId) => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.start();
+
+      let chunks = [];
+      mediaRecorderRef.current.addEventListener("dataavailable", (event) => {
+        chunks.push(event.data);
+      });
+      mediaRecorderRef.current.addEventListener("stop", () => {
+        const audioBlob = new Blob(chunks, { type: "audio/wav" });
+        uploadAudio(audioBlob, noteId).then((audioName) => {
+          setBlob(audioBlob);
+          setUris([...uris, audioName]);
+        });
+        chunks = [];
+      });
+
+      setIsRecording(true);
+    });
+  };
+
+  const uploadAudio = async (audioBlob, noteId) => {
+    const audio = new File([audioBlob], "audio.wav", {
+      type: "audio/wav",
+    });
+    const fromData = new FormData();
+    fromData.append("file", audio);
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/notes/${noteId}/files`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+
+          body: fromData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al subir el audio: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const stopRecording = () => {
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    uploadAudio(blob, selectedNote.id)
+      .then((audioName) => {
+        console.log(`Audio uploaded successfully with name ${audioName}`);
+      })
+      .catch((error) => {
+        console.error("Error uploading audio", error);
+      });
+    setUpdateNote({ ...selectedNote, isVoiceNote: true });
+  };
 
   useEffect(() => {
     if (selectedNote) {
@@ -145,22 +211,38 @@ function Notes() {
     handleUpdateNoteDebounced(selectedNote);
   }, [selectedNote]);
 
-  const handleDeleteNote = (id, uris) => {
-    /*/notes/{noteId}/files/{fileId} */
-    uris.forEach((uri) => {
-      fetch(`http://localhost:8080${uri}`, {
+  const handleDeleteNote = async (id) => {
+    try {
+      // Primero borra todos los archivos
+      await Promise.all(
+        uris.map(async (uri) => {
+          const response = await fetch(`http://localhost:8080${uri}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          // Si el servidor devuelve un error, lanza una excepción para detener la ejecución
+          if (!response.ok) {
+            throw new Error(`Failed to delete file ${uri}`);
+          }
+        })
+      );
+
+      // Luego borra la nota
+      const response = await fetch(`http://localhost:8080/notes/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-    });
-
-    fetch(`http://localhost:8080/notes/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    }).then(() => {
-      setNotes(notes.filter((note) => note.id !== id));
-      setSelectedNote(null);
-    });
+      if (response.ok) {
+        setNotes(notes.filter((note) => note.id !== id));
+        setSelectedNote(null);
+      } else {
+        throw new Error(`Failed to delete note ${id}`);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleFileSubmit = (e) => {
@@ -195,6 +277,7 @@ function Notes() {
     fetchImages();
   }, [uris]);
 
+  /*Cada vez que se suba una foto actualizar la pagina para que la foto se vea */
   useEffect(() => {
     if (selectedNote) {
       getUrisOFFiles(selectedNote.id).then((uris) => {
@@ -203,24 +286,6 @@ function Notes() {
     }
   }, [selectedNote]);
 
-  const filteredNotes = notes.filter((note) => {
-    if (filter === "text") {
-      return !note.isVoiceNote;
-    } else if (filter === "voice") {
-      return note.isVoiceNote;
-    } else {
-      return true;
-    }
-  });
-
-  const handleSearch = (e) => {
-    const search = e.target.value;
-    const filteredNotes = notes.filter((note) => {
-      return note.title.toLowerCase().includes(search.toLowerCase());
-    });
-    setNotes(filteredNotes);
-  };
-
   return (
     <div className="note-app">
       <div className="note-list">
@@ -228,20 +293,8 @@ function Notes() {
           Create Note
         </button>
         {/* Buscar nota por nombre */}
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="all">Todas las notas</option>
-          <option value="text">Notas de texto</option>
-          <option value="voice">Notas de voz</option>
-        </select>
-        {filter === "text" && (
-          <input
-            type="text"
-            placeholder="Buscar nota"
-            onChange={handleSearch}
-          />
-        )}
 
-        {filteredNotes.map((note) => (
+        {notes.map((note) => (
           <div
             key={note.id}
             onClick={() => handleSelectNote(note.id)}
@@ -279,6 +332,14 @@ function Notes() {
                 })
               }
             />
+            <div class="fechas">
+              <span class="titulo">Create at: </span>
+              <span id="create">{selectedNote.createdAt}</span>
+              <br />
+              <span class="titulo">Modified at: </span>
+              <span id="modified">{selectedNote.modifiedAt}</span>
+            </div>
+
             <div className="note-editor-buttons">
               {selectedNote.isPublic ? (
                 <button
@@ -300,12 +361,16 @@ function Notes() {
                 </button>
               )}
             </div>
+            <p>
+              (Debug )Is voice note: {selectedNote.isVoiceNote ? "Yes" : "No"}
+            </p>
             {/* Upload image */}
             <form onSubmit={handleFileSubmit}>
               <label htmlFor="fileInput">File: </label>
               <br />
               <input
                 id="fileInput"
+                required
                 type="file"
                 accept="image/*"
                 onChange={(event) => setFile(event.target.files[0])}
@@ -313,13 +378,20 @@ function Notes() {
               <br />
               <button type="submit">Upload Image</button>
             </form>
+            <div>
+              <button onClick={isRecording ? stopRecording : startRecording}>
+                {isRecording ? "Stop recording" : "Start recording"}
+              </button>
+              {blob ? <audio controls src={URL.createObjectURL(blob)} /> : null}
+            </div>
 
             <button
-              onClick={() => handleDeleteNote(selectedNote.id, uris)}
+              onClick={() => handleDeleteNote(selectedNote.id)}
               className="delete-note-button"
             >
               Delete Note
             </button>
+            <br />
 
             <h1 style={{ textAlign: "center" }}>Images of the note</h1>
 

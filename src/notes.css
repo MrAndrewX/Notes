@@ -47,6 +47,8 @@
   margin-bottom: 20px;
 }
 .delete-note-button {
+  display: flex;
+  justify-content: center;
   background-color: red;
   color: white;
   border: none;
@@ -94,4 +96,59 @@ textarea {
   /* Put all on the right */
   display: flex;
   justify-content: flex-end;
+}
+.fechas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /*TAble only occuping text*/
+  width: 100%;
+
+  background-color: #f2f2f2;
+
+  padding: 10px;
+  margin-bottom: 10px;
+  font-size: 10px;
+}
+/* Estilo CSS para el título */
+.titulo {
+  font-weight: bold;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #f2f2f2;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+input[type="file"] {
+  margin-bottom: 10px;
+}
+
+button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
 }
