@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import _, { map } from "lodash";
+import _ from "lodash";
 import "../notes.css";
 import "../audiorecorder.css";
 
@@ -28,6 +28,8 @@ function Notes() {
   const [file, setFile] = useState(null);
   const [uris, setUris] = useState([]);
   const [imageUrl, setImageUrl] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (selectedNote) {
@@ -143,7 +145,15 @@ function Notes() {
     handleUpdateNoteDebounced(selectedNote);
   }, [selectedNote]);
 
-  const handleDeleteNote = (id) => {
+  const handleDeleteNote = (id, uris) => {
+    /*/notes/{noteId}/files/{fileId} */
+    uris.forEach((uri) => {
+      fetch(`http://localhost:8080${uri}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+    });
+
     fetch(`http://localhost:8080/notes/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -159,22 +169,6 @@ function Notes() {
       uploadFile(file, selectedNote);
     }
   };
-
-  function fetchImages(uris) {
-    const imagePromises = uris.map((uri) => {
-      return fetch("http://localhost:8080" + uri, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          Accept: "application/octet-stream",
-        },
-      })
-        .then((res) => res.blob())
-        .then((blob) => URL.createObjectURL(blob))
-        .catch((error) => console.error(error));
-    });
-
-    Promise.all(imagePromises).then((urls) => setImageUrl(urls));
-  }
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -201,7 +195,6 @@ function Notes() {
     fetchImages();
   }, [uris]);
 
-  /*Cada vez que se suba una foto actualizar la pagina para que la foto se vea */
   useEffect(() => {
     if (selectedNote) {
       getUrisOFFiles(selectedNote.id).then((uris) => {
@@ -210,6 +203,24 @@ function Notes() {
     }
   }, [selectedNote]);
 
+  const filteredNotes = notes.filter((note) => {
+    if (filter === "text") {
+      return !note.isVoiceNote;
+    } else if (filter === "voice") {
+      return note.isVoiceNote;
+    } else {
+      return true;
+    }
+  });
+
+  const handleSearch = (e) => {
+    const search = e.target.value;
+    const filteredNotes = notes.filter((note) => {
+      return note.title.toLowerCase().includes(search.toLowerCase());
+    });
+    setNotes(filteredNotes);
+  };
+
   return (
     <div className="note-app">
       <div className="note-list">
@@ -217,8 +228,20 @@ function Notes() {
           Create Note
         </button>
         {/* Buscar nota por nombre */}
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">Todas las notas</option>
+          <option value="text">Notas de texto</option>
+          <option value="voice">Notas de voz</option>
+        </select>
+        {filter === "text" && (
+          <input
+            type="text"
+            placeholder="Buscar nota"
+            onChange={handleSearch}
+          />
+        )}
 
-        {notes.map((note) => (
+        {filteredNotes.map((note) => (
           <div
             key={note.id}
             onClick={() => handleSelectNote(note.id)}
@@ -292,7 +315,7 @@ function Notes() {
             </form>
 
             <button
-              onClick={() => handleDeleteNote(selectedNote.id)}
+              onClick={() => handleDeleteNote(selectedNote.id, uris)}
               className="delete-note-button"
             >
               Delete Note
