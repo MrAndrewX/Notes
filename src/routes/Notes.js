@@ -30,7 +30,6 @@ function Notes() {
   const [imageUrl, setImageUrl] = useState([]);
   const [audioUrl, setAudioUrl] = useState([]);
 
-  const [blob, setBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
 
@@ -48,7 +47,6 @@ function Notes() {
         console.log("starting audio recording");
         const audioBlob = new Blob(chunks, { type: "audio/wav" });
         uploadAudio(audioBlob, selectedNote.id).then((audioName) => {
-          setBlob(audioBlob);
           setUris([...uris, audioName.uri]);
         });
         chunks = [];
@@ -281,15 +279,6 @@ function Notes() {
 
     fetchImages();
   }, [uris]);
-
-  /*Cada vez que se suba una foto actualizar la pagina para que la foto se vea */
-  useEffect(() => {
-    if (selectedNote) {
-      getUrisOFFiles(selectedNote.id).then((uris) => {
-        setUris(uris);
-      });
-    }
-  }, [selectedNote]);
 
   return (
     <div className="note-app">
