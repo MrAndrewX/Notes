@@ -1,26 +1,12 @@
-.audio-recorder {
+.audio {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.start-recording-button,
-.stop-recording-button {
-  background-color: #4caf50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
+  width: 100%;
+  margin: 10px 0;
+  background-color: #f2f2f2;
+  border: 1px solid #ccc;
   border-radius: 4px;
-  cursor: pointer;
-  outline: none;
-  margin-top: 20px;
-}
-
-.stop-recording-button {
-  background-color: #f44336;
-}
-
-audio {
-  width: 50%;
-  margin-top: 20px;
+  padding: 10px;
+  font-size: 16px;
+  color: #333;
+  flex-direction: column;
 }

@@ -28,12 +28,14 @@ function Notes() {
   const [file, setFile] = useState(null);
   const [uris, setUris] = useState([]);
   const [imageUrl, setImageUrl] = useState([]);
+  const [audioUrl, setAudioUrl] = useState([]);
 
-  const [isRecording, setIsRecording] = useState(false);
   const [blob, setBlob] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
 
-  const startRecording = (noteId) => {
+  const startRecording = () => {
+    console.log("starting audio recording on note" + selectedNote.id);
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
       mediaRecorderRef.current = new MediaRecorder(stream);
       mediaRecorderRef.current.start();
@@ -43,10 +45,11 @@ function Notes() {
         chunks.push(event.data);
       });
       mediaRecorderRef.current.addEventListener("stop", () => {
+        console.log("starting audio recording");
         const audioBlob = new Blob(chunks, { type: "audio/wav" });
-        uploadAudio(audioBlob, noteId).then((audioName) => {
+        uploadAudio(audioBlob, selectedNote.id).then((audioName) => {
           setBlob(audioBlob);
-          setUris([...uris, audioName]);
+          setUris([...uris, audioName.uri]);
         });
         chunks = [];
       });
@@ -56,6 +59,7 @@ function Notes() {
   };
 
   const uploadAudio = async (audioBlob, noteId) => {
+    console.log("uploading audio");
     const audio = new File([audioBlob], "audio.wav", {
       type: "audio/wav",
     });
@@ -87,13 +91,6 @@ function Notes() {
   const stopRecording = () => {
     mediaRecorderRef.current.stop();
     setIsRecording(false);
-    uploadAudio(blob, selectedNote.id)
-      .then((audioName) => {
-        console.log(`Audio uploaded successfully with name ${audioName}`);
-      })
-      .catch((error) => {
-        console.error("Error uploading audio", error);
-      });
     setUpdateNote({ ...selectedNote, isVoiceNote: true });
   };
 
@@ -254,21 +251,29 @@ function Notes() {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const imagePromises = uris.map((uri) => {
-        return fetch(`http://localhost:8080${uri}`, {
+      const promises = uris.map(async (uri) => {
+        const res = await fetch(`http://localhost:8080${uri}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             Accept: "application/octet-stream",
           },
-        })
-          .then((res) => res.blob())
-          .then((blob) => URL.createObjectURL(blob))
-          .catch((error) => console.error(error));
+        });
+        const body = await res.blob();
+        return { contentType: res.headers.get("Content-Type"), body };
       });
 
       try {
-        const urls = await Promise.all(imagePromises);
-        setImageUrl(urls);
+        const urls = await Promise.all(promises);
+        setAudioUrl(
+          urls
+            .filter((url) => url.contentType.startsWith("audio/"))
+            .map((url) => URL.createObjectURL(url.body))
+        );
+        setImageUrl(
+          urls
+            .filter((url) => url.contentType.startsWith("image/"))
+            .map((url) => URL.createObjectURL(url.body))
+        );
       } catch (error) {
         console.error(error);
       }
@@ -382,8 +387,21 @@ function Notes() {
               <button onClick={isRecording ? stopRecording : startRecording}>
                 {isRecording ? "Stop recording" : "Start recording"}
               </button>
-              {blob ? <audio controls src={URL.createObjectURL(blob)} /> : null}
             </div>
+            <h2 style={{ textAlign: "center" }}>Audios of the note</h2>
+            <div style={{ display: "flex" }}>
+              {audioUrl &&
+                audioUrl.length > 0 &&
+                audioUrl.map((audioUrl) => (
+                  <audio
+                    src={audioUrl}
+                    controls
+                    key={audioUrl}
+                    className="audio"
+                  />
+                ))}
+            </div>
+            <br />
 
             <button
               onClick={() => handleDeleteNote(selectedNote.id)}
