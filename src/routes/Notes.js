@@ -29,7 +29,9 @@ function Notes() {
   const [uris, setUris] = useState([]);
   const [imageUrl, setImageUrl] = useState([]);
   const [audioUrl, setAudioUrl] = useState([]);
-
+  const [search, setSearch] = useState("");
+  const [noteType, setNoteType] = useState("all");
+  const [orderBy, setOrderBy] = useState("all");
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
 
@@ -280,6 +282,12 @@ function Notes() {
     fetchImages();
   }, [uris]);
 
+  /*Useeffect tu update searched notes */
+
+  const handleSearch = (e) => {
+    setSearch(e.target.value);
+  };
+
   return (
     <div className="note-app">
       <div className="note-list">
@@ -288,17 +296,62 @@ function Notes() {
         </button>
         {/* Buscar nota por nombre */}
 
-        {notes.map((note) => (
-          <div
-            key={note.id}
-            onClick={() => handleSelectNote(note.id)}
-            className={`note-item ${
-              selectedNote && selectedNote.id === note.id ? "selected" : ""
-            }`}
+        <form>
+          <input type="text" placeholder={search} onChange={handleSearch} />
+          Note type: <br />
+          <select
+            name="noteType"
+            id="noteType"
+            onChange={(e) => setNoteType(e.target.value)}
           >
-            {note.title}
-          </div>
-        ))}
+            <option value="all">All</option>
+            <option value="text">Text</option>
+            <option value="voice">Voice</option>
+          </select>
+          Order by: <br />
+          <select
+            name="orderBy"
+            id="orderBy"
+            onChange={(e) => setOrderBy(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="title">Title</option>
+            <option value="created">Created</option>
+            <option value="modified">Modified</option>
+          </select>
+        </form>
+        {/*-------------------------*/}
+        {notes
+          .filter(
+            (note) =>
+              (note.title.toLowerCase().includes(search.toLowerCase()) ||
+                note.body.toLowerCase().includes(search.toLowerCase())) &&
+              (noteType === "all" ||
+                (note.isVoiceNote === true && noteType === "voice") ||
+                (note.isVoiceNote === false && noteType === "text"))
+          )
+          .sort((a, b) => {
+            if (orderBy === "title") {
+              return a.title.localeCompare(b.title);
+            } else if (orderBy === "created") {
+              return a.createdAt.localeCompare(b.createdAt);
+            } else if (orderBy === "modified") {
+              return a.modifiedAt.localeCompare(b.modifiedAt);
+            } else {
+              return 0;
+            }
+          })
+          .map((note) => (
+            <div
+              key={note.id}
+              onClick={() => handleSelectNote(note.id)}
+              className={`note-item ${
+                selectedNote && selectedNote.id === note.id ? "selected" : ""
+              }`}
+            >
+              {note.title}
+            </div>
+          ))}
       </div>
       <div className="note-editor">
         {selectedNote ? (
