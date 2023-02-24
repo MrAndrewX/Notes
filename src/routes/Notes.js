@@ -34,7 +34,7 @@ function Notes() {
   const [orderBy, setOrderBy] = useState("all");
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
-
+  const [imageuploaded, setImageUploaded] = useState(false);
   const startRecording = () => {
     console.log("starting audio recording on note" + selectedNote.id);
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
@@ -126,8 +126,17 @@ function Notes() {
         body: fromData,
       }
     );
+
+    setImageUploaded(true);
     return response.json();
   };
+
+  // update on setImageUploaded change
+  useEffect(() => {
+    if (imageuploaded) {
+      getUrisOFFiles(selectedNote.id).then((uris) => setUris(uris));
+    }
+  }, [imageuploaded, selectedNote]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
