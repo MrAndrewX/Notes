@@ -30,11 +30,17 @@ function Settings() {
 
       if (response.ok) {
         setOk(data.message);
-        return;
+        return true;
+      } else if (response.status === 401) {
+        setError("Contraseña antigua incorrecta");
+        return false;
+      } else {
+        setError("Error al cambiar la contraseña");
+        return false;
       }
-      setOk(data.message);
     } catch (error) {
-      setError(error.message);
+      setOk("Error al cambiar la contraseña");
+      return false;
     }
   };
 
