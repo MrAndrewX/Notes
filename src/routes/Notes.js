@@ -283,6 +283,7 @@ function Notes() {
             .filter((url) => url.contentType.startsWith("image/"))
             .map((url) => URL.createObjectURL(url.body))
         );
+        setImageUploaded(false);
       } catch (error) {
         console.error(error);
       }
@@ -290,6 +291,13 @@ function Notes() {
 
     fetchImages();
   }, [uris]);
+
+  //useEffect to redraw the images when a image is uploaded
+  useEffect(() => {
+    if (imageuploaded) {
+      getUrisOFFiles(selectedNote.id).then((uris) => setUris(uris));
+    }
+  }, [imageuploaded, selectedNote]);
 
   /*Useeffect tu update searched notes */
 
